@@ -16,9 +16,11 @@ def restart_freeradius():
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         client.connect(host, username=user, password=password, timeout=10)
-        _stdin, stdout, stderr = client.exec_command(
-            "sudo systemctl restart freeradius", timeout=15
+        stdin, stdout, stderr = client.exec_command(
+            "sudo -S systemctl restart freeradius", timeout=15
         )
+        stdin.write(password + "\n")
+        stdin.flush()
         exit_code = stdout.channel.recv_exit_status()
         if exit_code == 0:
             return True, "FreeRADIUS reiniciado correctamente."
