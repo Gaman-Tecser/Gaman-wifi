@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Usuarios Portal - Gaman WiFi{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Usuarios Portal</h4>
+  <form method="POST" action="{{ url_for('portal_users.run_cleanup') }}" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-warning btn-sm" onclick="return confirm('¿Limpiar sesiones expiradas?')">
+      <i class="bi bi-arrow-repeat me-1"></i>Limpiar expiradas
+    </button>
+  </form>
+</div>
+
+<form class="mb-3" method="GET">
+  <div class="input-group input-group-sm" style="max-width:400px">
+    <input type="text" name="q" class="form-control" placeholder="Buscar por email o nombre..." value="{{ q }}">
+    <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Email</th><th>Nombre</th><th>Dominio</th><th>Grupo</th><th>Estado</th><th>MACs activas</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr>
+        <td><strong>{{ u.email }}</strong></td>
+        <td>{{ u.full_name }}</td>
+        <td>{{ u.domain }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('portal_users.change_group', user_id=u.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="group_name" class="form-select form-select-sm d-inline-block" style="width:auto"
+                    onchange="this.form.submit()">
+              {% for g in groups %}
+              <option value="{{ g.group_name }}" {% if g.group_name == u.group_name %}selected{% endif %}>
+                {{ g.group_name }} (VLAN {{ g.vlan_id }})
+              </option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          {% if u.is_enabled %}
+            <span class="badge bg-success">Habilitado</span>
+          {% else %}
+            <span class="badge bg-secondary">Deshabilitado</span>
+          {% endif %}
+        </td>
+        <td>{{ u.sessions.count() }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('portal_users.toggle_user', user_id=u.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-{{ 'warning' if u.is_enabled else 'success' }} btn-sm"
+                    title="{{ 'Deshabilitar' if u.is_enabled else 'Habilitar' }}">
+              <i class="bi bi-{{ 'pause-circle' if u.is_enabled else 'play-circle' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('portal_users.delete_user', user_id=u.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar usuario {{ u.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-muted text-center py-3">No hay usuarios del portal.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Gaman WiFi{% endblock %}
+{% block content %}
+<h4 class="mb-3">{{ title }}</h4>
+<div class="card">
+  <div class="card-body">
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        <label class="form-label">Dominio</label>
+        {{ form.domain(class="form-control", placeholder="Ej: empresa.com") }}
+        {% for e in form.domain.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Grupo/VLAN por defecto</label>
+        {{ form.default_group_name(class="form-select") }}
+        {% for e in form.default_group_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3 form-check">
+        {{ form.is_active(class="form-check-input") }}
+        <label class="form-check-label">Activo</label>
+      </div>
+      <a href="{{ url_for('domains.list_domains') }}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -11,3 +11,8 @@ class Config:
     RADIUS_SSH_HOST = os.environ.get("RADIUS_SSH_HOST", "192.168.38.3")
     RADIUS_SSH_USER = os.environ.get("RADIUS_SSH_USER", "tecser")
     RADIUS_SSH_PASSWORD = os.environ.get("RADIUS_SSH_PASSWORD")
+
+    # Google OAuth (Portal Cautivo)
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+    PORTAL_SESSION_HOURS = int(os.environ.get("PORTAL_SESSION_HOURS", "24"))
