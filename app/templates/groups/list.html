@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Grupos - Gaman WiFi{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Grupos</h4>
+  <a href="{{ url_for('groups.create_group') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Nuevo Grupo
+  </a>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Nombre</th><th>VLAN ID</th><th>Descripción</th><th>Usuarios</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for g in groups %}
+      <tr>
+        <td><strong>{{ g.group_name }}</strong></td>
+        <td><span class="badge bg-info">{{ g.vlan_id }}</span></td>
+        <td>{{ g.description }}</td>
+        <td>{{ g.users.count() }}</td>
+        <td>
+          <a href="{{ url_for('groups.edit_group', group_id=g.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('groups.delete_group', group_id=g.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar grupo {{ g.group_name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted text-center py-3">No hay grupos. Crea uno para empezar.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

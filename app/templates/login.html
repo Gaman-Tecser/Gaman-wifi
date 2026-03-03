@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión - Gaman WiFi{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-body p-4">
+        <h4 class="text-center mb-4"><i class="bi bi-wifi me-2"></i>Gaman WiFi</h4>
+        <form method="POST">
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            <label class="form-label">Usuario</label>
+            {{ form.username(class="form-control", placeholder="admin", autofocus=true) }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            {{ form.password(class="form-control") }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

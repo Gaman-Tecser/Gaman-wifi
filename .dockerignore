@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.env
+.git/
+.claude/
+venv/
+.venv/
+*.md
+configure_*.py
+ssh_helper.py

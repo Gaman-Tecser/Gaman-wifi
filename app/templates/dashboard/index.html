@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Gaman WiFi{% endblock %}
+{% block content %}
+<h4 class="mb-4">Dashboard</h4>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-bg-primary">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fs-2 fw-bold">{{ total_users }}</div>
+            <div>Usuarios WiFi</div>
+          </div>
+          <i class="bi bi-people fs-1 opacity-50"></i>
+        </div>
+        <small>{{ enabled_users }} habilitados</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-success">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fs-2 fw-bold">{{ active_sessions|length }}</div>
+            <div>Sesiones activas</div>
+          </div>
+          <i class="bi bi-wifi fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-info">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fs-2 fw-bold">{{ total_groups }}</div>
+            <div>Grupos</div>
+          </div>
+          <i class="bi bi-collection fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-warning">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fs-2 fw-bold">{{ total_aps }}</div>
+            <div>Puntos de Acceso</div>
+          </div>
+          <i class="bi bi-router fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-wifi me-2"></i>Sesiones activas</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Usuario</th><th>NAS IP</th><th>Inicio</th><th>MAC cliente</th></tr></thead>
+            <tbody>
+            {% for s in active_sessions %}
+            <tr>
+              <td>{{ s.username }}</td>
+              <td>{{ s.nasipaddress }}</td>
+              <td>{{ s.acctstarttime.strftime('%d/%m %H:%M') if s.acctstarttime else '-' }}</td>
+              <td><code>{{ s.callingstationid }}</code></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted text-center py-3">Sin sesiones activas</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clock-history me-2"></i>Autenticaciones recientes</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Usuario</th><th>Resultado</th><th>Fecha</th></tr></thead>
+            <tbody>
+            {% for a in recent_auths %}
+            <tr>
+              <td>{{ a.username }}</td>
+              <td>
+                {% if a.reply == 'Access-Accept' %}
+                  <span class="badge bg-success">Accept</span>
+                {% elif a.reply == 'Access-Reject' %}
+                  <span class="badge bg-danger">Reject</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ a.reply }}</span>
+                {% endif %}
+              </td>
+              <td>{{ a.authdate.strftime('%d/%m %H:%M') if a.authdate else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-muted text-center py-3">Sin datos</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
