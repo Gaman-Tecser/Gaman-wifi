@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
     session, request, current_app,
 )
+
+logger = logging.getLogger(__name__)
 from app.extensions import db, oauth
 from app.models.allowed_domain import AllowedDomain
 from app.models.portal_user import PortalUser
@@ -18,6 +21,7 @@ def landing():
     mac = request.args.get("mac", "")
     if mac:
         session["portal_mac"] = mac
+    logger.info(f"[PORTAL LANDING] mac param={mac}, session keys={list(session.keys())}")
     return render_template("portal/landing.html", mac=mac)
 
 
@@ -27,6 +31,7 @@ def login():
     mac = request.args.get("mac", "")
     if mac:
         session["portal_mac"] = mac
+    logger.info(f"[PORTAL LOGIN] mac param={mac}, session portal_mac={session.get('portal_mac')}, session keys={list(session.keys())}")
     redirect_uri = url_for("portal.callback", _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
 
@@ -64,6 +69,7 @@ def callback():
         )
 
     # Obtener MAC de la sesión
+    logger.info(f"[PORTAL CALLBACK] session keys={list(session.keys())}, portal_mac={session.get('portal_mac')}")
     mac_raw = session.pop("portal_mac", "")
     if not mac_raw:
         return render_template(
