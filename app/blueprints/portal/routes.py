@@ -16,6 +16,12 @@ from app.services.portal_sync import normalize_mac, sync_mac_authorize
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
 
+@portal_bp.route("/accept")
+def accept():
+    """Simple accept page for Aruba Instant On captive portal."""
+    return render_template("portal/accept.html")
+
+
 @portal_bp.route("/")
 def landing():
     mac = request.args.get("mac", "")
