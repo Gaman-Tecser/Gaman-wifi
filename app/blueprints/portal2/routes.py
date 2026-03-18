@@ -34,18 +34,22 @@ def landing():
 @portal2_bp.route("/login")
 def login():
     redirect_uri = url_for("portal2.callback", _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
+    logger.info(f"[PORTAL2 LOGIN] redirect_uri={redirect_uri}, session_keys={list(session.keys())}")
+    resp = oauth.google.authorize_redirect(redirect_uri)
+    logger.info(f"[PORTAL2 LOGIN] after redirect, session_keys={list(session.keys())}, session_state={session.get('_state_google_')}")
+    return resp
 
 
 @portal2_bp.route("/callback")
 def callback():
+    logger.info(f"[PORTAL2 CALLBACK] session_keys={list(session.keys())}, session_state={session.get('_state_google_')}, request_state={request.args.get('state')}")
     try:
         token = oauth.google.authorize_access_token()
     except Exception as e:
         logger.error(f"[PORTAL2 CALLBACK] OAuth error: {e}")
         return render_template(
             "portal/error.html",
-            error="No se pudo completar la autenticación con Google.",
+            error=f"Error OAuth: {e}",
         )
 
     userinfo = token.get("userinfo")
