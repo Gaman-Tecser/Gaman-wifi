@@ -64,18 +64,16 @@ def login():
 def callback():
     state_value = request.args.get("state", "")
 
-    # Restore OAuth state from DB if not in session (cookie lost)
+    # Always restore OAuth state from DB (session cookies are unreliable
+    # in captive portal contexts)
     session_key = f"_state_google_{state_value}"
 
-    if session_key not in session and state_value:
+    if state_value:
         oauth_state = db.session.get(OAuthState, state_value)
         if oauth_state:
             session[session_key] = json.loads(oauth_state.data)
-            logger.info(f"[PORTAL CALLBACK] state restored from DB, mac={oauth_state.mac}")
             db.session.delete(oauth_state)
             db.session.commit()
-        else:
-            logger.error(f"[PORTAL CALLBACK] state {state_value} not found in DB or session")
 
     try:
         token = oauth.google.authorize_access_token()
