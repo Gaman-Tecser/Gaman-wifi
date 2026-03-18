@@ -23,6 +23,10 @@ def landing():
 
 @portal_bp.route("/login")
 def login():
+    # Capture MAC from query param (survives captive portal browser switch)
+    mac = request.args.get("mac", "")
+    if mac:
+        session["portal_mac"] = mac
     redirect_uri = url_for("portal.callback", _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
 
