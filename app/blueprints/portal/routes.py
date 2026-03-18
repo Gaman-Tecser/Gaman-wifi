@@ -21,7 +21,7 @@ def landing():
     mac = request.args.get("mac", "")
     if mac:
         session["portal_mac"] = mac
-    logger.info(f"[PORTAL LANDING] mac param={mac}, session keys={list(session.keys())}")
+    logger.info(f"[PORTAL LANDING] mac param={mac}, session keys={list(session.keys())}, full_url={request.url}, headers={dict(request.headers)}")
     return render_template("portal/landing.html", mac=mac)
 
 
