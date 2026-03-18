@@ -119,6 +119,7 @@ def callback():
             picture_url=picture,
             domain=domain,
             group_name=allowed.default_group_name,
+            is_enabled=True,
         )
         db.session.add(portal_user)
     else:
