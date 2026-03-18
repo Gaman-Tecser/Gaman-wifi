@@ -77,6 +77,7 @@ def callback():
 
     try:
         token = oauth.google.authorize_access_token()
+        logger.info(f"[PORTAL CALLBACK] token obtained OK")
     except Exception as e:
         logger.error(f"[PORTAL CALLBACK] OAuth error: {e}")
         return render_template(
@@ -86,6 +87,7 @@ def callback():
 
     userinfo = token.get("userinfo")
     if not userinfo:
+        logger.error("[PORTAL CALLBACK] No userinfo in token")
         return render_template(
             "portal/error.html",
             error="No se pudo obtener información del usuario.",
@@ -95,11 +97,13 @@ def callback():
     name = userinfo.get("name", email)
     picture = userinfo.get("picture", "")
     domain = email.split("@")[-1].lower() if "@" in email else ""
+    logger.info(f"[PORTAL CALLBACK] email={email}, domain={domain}")
 
     allowed = AllowedDomain.query.filter_by(
         domain=domain, is_active=True
     ).first()
     if not allowed:
+        logger.warning(f"[PORTAL CALLBACK] domain NOT allowed: {domain}")
         return render_template(
             "portal/error.html",
             error=f"El dominio '{domain}' no está autorizado.",
@@ -108,6 +112,7 @@ def callback():
     # Create or update portal user
     portal_user = PortalUser.query.filter_by(email=email).first()
     if not portal_user:
+        logger.info(f"[PORTAL CALLBACK] creating new user: {email}")
         portal_user = PortalUser(
             email=email,
             full_name=name,
@@ -117,10 +122,12 @@ def callback():
         )
         db.session.add(portal_user)
     else:
+        logger.info(f"[PORTAL CALLBACK] existing user: {email}, enabled={portal_user.is_enabled}")
         portal_user.full_name = name
         portal_user.picture_url = picture
 
     if not portal_user.is_enabled:
+        logger.warning(f"[PORTAL CALLBACK] user DISABLED: {email}")
         return render_template(
             "portal/error.html",
             error="Tu cuenta ha sido deshabilitada por el administrador.",
