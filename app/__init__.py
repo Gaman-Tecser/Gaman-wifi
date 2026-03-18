@@ -37,6 +37,7 @@ def create_app():
     from app.blueprints.domains.routes import domains_bp
     from app.blueprints.portal_users.routes import portal_users_bp
     from app.blueprints.portal.routes import portal_bp
+    from app.blueprints.portal2.routes import portal2_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -46,9 +47,11 @@ def create_app():
     app.register_blueprint(domains_bp)
     app.register_blueprint(portal_users_bp)
     app.register_blueprint(portal_bp)
+    app.register_blueprint(portal2_bp)
 
-    # Excluir portal público de CSRF (no tiene sesión admin)
+    # Excluir portales públicos de CSRF
     csrf.exempt(portal_bp)
+    csrf.exempt(portal2_bp)
 
     # CLI commands
     from app.cli import portal_cleanup_cmd
