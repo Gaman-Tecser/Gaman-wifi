@@ -1,6 +1,6 @@
+import json
 import logging
 from datetime import datetime, timezone
-from urllib.parse import urlencode
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
@@ -11,45 +11,88 @@ logger = logging.getLogger(__name__)
 from app.extensions import db, oauth
 from app.models.allowed_domain import AllowedDomain
 from app.models.portal_user import PortalUser
+from app.models.oauth_state import OAuthState
 
 portal2_bp = Blueprint("portal2", __name__, url_prefix="/portal2")
 
 
 @portal2_bp.route("/")
 def landing():
-    # Save all Aruba params in session
+    # Capture all Aruba params
     aruba_params = {}
     for key in ("cmd", "mac", "network", "ip", "apmac", "site", "post", "url"):
         val = request.args.get(key, "")
         if val:
             aruba_params[key] = val
 
+    mac = aruba_params.get("mac", "")
+    logger.info(f"[PORTAL2 LANDING] mac={mac}, aruba_params={aruba_params}")
+
+    # Store in session as fallback, but also pass mac in URL
     if aruba_params:
         session["aruba_params"] = aruba_params
 
-    logger.info(f"[PORTAL2 LANDING] aruba_params={aruba_params}, full_url={request.url}")
-    return render_template("portal2/landing.html", aruba_params=aruba_params)
+    return render_template(
+        "portal2/landing.html",
+        aruba_params=aruba_params,
+        mac=mac,
+    )
 
 
 @portal2_bp.route("/login")
 def login():
+    mac = request.args.get("mac", session.get("aruba_params", {}).get("mac", ""))
+    aruba_params = session.get("aruba_params", {})
+
     redirect_uri = url_for("portal2.callback", _external=True)
-    logger.info(f"[PORTAL2 LOGIN] redirect_uri={redirect_uri}, session_keys={list(session.keys())}")
     resp = oauth.google.authorize_redirect(redirect_uri)
-    logger.info(f"[PORTAL2 LOGIN] after redirect, session_keys={list(session.keys())}, session_state={session.get('_state_google_')}")
+
+    # Save OAuth state to DB (survives cookie/session loss)
+    for key in list(session.keys()):
+        if key.startswith("_state_google_"):
+            state_value = key.replace("_state_google_", "")
+            state_data = session[key]
+            db.session.merge(OAuthState(
+                state=state_value,
+                data=json.dumps(state_data),
+                mac=mac,
+                aruba_params=json.dumps(aruba_params),
+            ))
+            db.session.commit()
+            logger.info(f"[PORTAL2 LOGIN] state={state_value} saved to DB, mac={mac}")
+            break
+
     return resp
 
 
 @portal2_bp.route("/callback")
 def callback():
-    logger.info(f"[PORTAL2 CALLBACK] session_keys={list(session.keys())}, session_state={session.get('_state_google_')}, request_state={request.args.get('state')}")
+    state_value = request.args.get("state", "")
+
+    # Restore OAuth state from DB if not in session (cookie lost)
+    session_key = f"_state_google_{state_value}"
+    aruba_params = {}
+
+    if session_key not in session and state_value:
+        oauth_state = db.session.get(OAuthState, state_value)
+        if oauth_state:
+            session[session_key] = json.loads(oauth_state.data)
+            aruba_params = json.loads(oauth_state.aruba_params or "{}")
+            logger.info(f"[PORTAL2 CALLBACK] state restored from DB, mac={oauth_state.mac}")
+            db.session.delete(oauth_state)
+            db.session.commit()
+        else:
+            logger.error(f"[PORTAL2 CALLBACK] state {state_value} not found in DB")
+    else:
+        aruba_params = session.pop("aruba_params", {})
+
     try:
         token = oauth.google.authorize_access_token()
     except Exception as e:
         logger.error(f"[PORTAL2 CALLBACK] OAuth error: {e}")
         return render_template(
             "portal/error.html",
-            error=f"Error OAuth: {e}",
+            error=f"Error de autenticación: {e}",
         )
 
     userinfo = token.get("userinfo")
@@ -97,28 +140,8 @@ def callback():
     portal_user.last_auth_at = datetime.now(timezone.utc)
     db.session.commit()
 
-    # Retrieve Aruba params from session
-    aruba = session.pop("aruba_params", {})
-    post_host = aruba.get("post", "")
+    logger.info(f"[PORTAL2 CALLBACK] success: user={email}, aruba_params={aruba_params}")
 
-    logger.info(f"[PORTAL2 CALLBACK] user={email}, aruba_params={aruba}")
-
-    if post_host:
-        # Redirect back to Aruba to authenticate the client
-        auth_params = {
-            "cmd": "authenticate",
-            "mac": aruba.get("mac", ""),
-            "network": aruba.get("network", ""),
-            "ip": aruba.get("ip", ""),
-            "apmac": aruba.get("apmac", ""),
-            "site": aruba.get("site", ""),
-            "url": aruba.get("url", "http://wifi.apps.grupogaman.com.ar"),
-        }
-        auth_url = f"https://{post_host}/?{urlencode(auth_params)}"
-        logger.info(f"[PORTAL2 CALLBACK] redirecting to Aruba: {auth_url}")
-        return redirect(auth_url)
-
-    # No Aruba params - show success page
     return render_template(
         "portal2/success.html",
         name=name,

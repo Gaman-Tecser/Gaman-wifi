@@ -15,7 +15,7 @@ target_metadata = current_app.extensions["migrate"].db.metadata
 
 GAMAN_TABLES = {
     "gaman_admin", "gaman_wifi_user", "gaman_wifi_group", "gaman_access_point",
-    "gaman_allowed_domain", "gaman_portal_user",
+    "gaman_allowed_domain", "gaman_portal_user", "gaman_oauth_state",
 }
 
 
