@@ -5,7 +5,6 @@ from app.models.wifi_user import WifiUser
 from app.models.wifi_group import WifiGroup
 from app.models.access_point import GamanAccessPoint
 from app.models.portal_user import PortalUser
-from app.models.portal_session import PortalSession
 from app.models.radius import Radacct, Radpostauth
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/")
@@ -41,11 +40,9 @@ def index():
         .all()
     )
 
-    # Portal cautivo
+    # Portal
     total_portal_users = PortalUser.query.count()
-    active_portal_sessions = PortalSession.query.filter(
-        PortalSession.expires_at >= db.func.now()
-    ).count()
+    enabled_portal_users = PortalUser.query.filter_by(is_enabled=True).count()
 
     return render_template(
         "dashboard/index.html",
@@ -56,5 +53,5 @@ def index():
         active_sessions=active_sessions,
         recent_auths=recent_auths,
         total_portal_users=total_portal_users,
-        active_portal_sessions=active_portal_sessions,
+        enabled_portal_users=enabled_portal_users,
     )

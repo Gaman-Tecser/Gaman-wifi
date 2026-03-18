@@ -16,7 +16,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
 
-    # Google OAuth (Portal Cautivo)
+    # Google OAuth (Portal Registro)
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-    PORTAL_SESSION_HOURS = int(os.environ.get("PORTAL_SESSION_HOURS", "24"))
+    WIFI_SSID_NAME = os.environ.get("WIFI_SSID_NAME", "Gaman-WiFi")

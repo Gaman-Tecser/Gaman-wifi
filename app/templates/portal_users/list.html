@@ -3,12 +3,6 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Usuarios Portal</h4>
-  <form method="POST" action="{{ url_for('portal_users.run_cleanup') }}" class="d-inline">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-outline-warning btn-sm" onclick="return confirm('¿Limpiar sesiones expiradas?')">
-      <i class="bi bi-arrow-repeat me-1"></i>Limpiar expiradas
-    </button>
-  </form>
 </div>
 
 <form class="mb-3" method="GET">
@@ -21,7 +15,7 @@
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover mb-0">
-      <thead><tr><th>Email</th><th>Nombre</th><th>Dominio</th><th>Grupo</th><th>Estado</th><th>MACs activas</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Email</th><th>Nombre</th><th>Dominio</th><th>Grupo</th><th>Estado</th><th>Acciones</th></tr></thead>
       <tbody>
       {% for u in users %}
       <tr>
@@ -48,13 +42,19 @@
             <span class="badge bg-secondary">Deshabilitado</span>
           {% endif %}
         </td>
-        <td>{{ u.sessions.count() }}</td>
         <td>
           <form method="POST" action="{{ url_for('portal_users.toggle_user', user_id=u.id) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-outline-{{ 'warning' if u.is_enabled else 'success' }} btn-sm"
                     title="{{ 'Deshabilitar' if u.is_enabled else 'Habilitar' }}">
               <i class="bi bi-{{ 'pause-circle' if u.is_enabled else 'play-circle' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('portal_users.reset_password', user_id=u.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Resetear contraseña WiFi de {{ u.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-info btn-sm" title="Resetear contraseña WiFi">
+              <i class="bi bi-key"></i>
             </button>
           </form>
           <form method="POST" action="{{ url_for('portal_users.delete_user', user_id=u.id) }}" class="d-inline"
@@ -65,7 +65,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="text-muted text-center py-3">No hay usuarios del portal.</td></tr>
+      <tr><td colspan="6" class="text-muted text-center py-3">No hay usuarios del portal.</td></tr>
       {% endfor %}
       </tbody>
     </table>

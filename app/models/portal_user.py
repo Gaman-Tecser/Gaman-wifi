@@ -1,3 +1,5 @@
+from cryptography.fernet import Fernet
+from flask import current_app
 from app.extensions import db
 
 
@@ -19,12 +21,19 @@ class PortalUser(db.Model):
     created_at = db.Column(
         db.DateTime, server_default=db.func.now(), nullable=False
     )
+    wifi_password_encrypted = db.Column(db.LargeBinary, nullable=True)
 
     group = db.relationship("WifiGroup", backref="portal_users")
-    sessions = db.relationship(
-        "PortalSession", backref="portal_user", lazy="dynamic",
-        cascade="all, delete-orphan",
-    )
+
+    def set_wifi_password(self, cleartext):
+        key = current_app.config["FERNET_KEY"].encode()
+        self.wifi_password_encrypted = Fernet(key).encrypt(cleartext.encode())
+
+    def get_wifi_password(self):
+        if not self.wifi_password_encrypted:
+            return None
+        key = current_app.config["FERNET_KEY"].encode()
+        return Fernet(key).decrypt(self.wifi_password_encrypted).decode()
 
     def __repr__(self):
         return f"<PortalUser {self.email}>"
