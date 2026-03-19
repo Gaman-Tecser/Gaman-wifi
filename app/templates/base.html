@@ -46,9 +46,15 @@
           <i class="bi bi-router me-2"></i>Puntos de Acceso
         </a>
       </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('ad_computers') %}active{% endif %}"
+           href="{{ url_for('ad_computers.list_computers') }}">
+          <i class="bi bi-pc-display me-2"></i>Equipos AD
+        </a>
+      </li>
     </ul>
     <hr class="text-secondary my-2">
-    <small class="text-secondary text-uppercase px-2 mb-1 d-block">Portal Cautivo</small>
+    <small class="text-secondary text-uppercase px-2 mb-1 d-block">Portal Autoservicio</small>
     <ul class="nav flex-column">
       <li class="nav-item">
         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('domains') %}active{% endif %}"

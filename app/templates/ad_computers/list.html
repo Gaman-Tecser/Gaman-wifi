@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Equipos AD - Gaman WiFi{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-pc-display me-2"></i>Equipos Active Directory</h4>
+  <div class="d-flex gap-2">
+    {% if ad_configured %}
+    <form method="POST" action="{{ url_for('ad_computers.sync_all') }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-success btn-sm" title="Sincronizar todos los grupos a RADIUS">
+        <i class="bi bi-arrow-repeat me-1"></i>Sync a RADIUS
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('ad_computers.import_from_ad') }}" class="d-inline"
+          onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Importando...'">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary btn-sm">
+        <i class="bi bi-cloud-download me-1"></i>Importar desde AD
+      </button>
+    </form>
+    {% else %}
+    <span class="text-muted small">
+      <i class="bi bi-exclamation-triangle me-1"></i>LDAP no configurado (AD_LDAP_HOST)
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<form class="mb-3" method="GET">
+  <div class="input-group input-group-sm" style="max-width:450px">
+    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre, cuenta, OU..." value="{{ q }}">
+    <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+  </div>
+</form>
+
+{% if computers %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>
+        <th>Equipo</th>
+        <th>Cuenta</th>
+        <th>SO</th>
+        <th>OU</th>
+        <th>Grupo (VLAN)</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody>
+      {% for c in computers %}
+      <tr>
+        <td>
+          <i class="bi bi-pc-display text-info me-1"></i>
+          <strong>{{ c.name }}</strong>
+          {% if c.description %}
+          <br><small class="text-muted">{{ c.description }}</small>
+          {% endif %}
+        </td>
+        <td><code>{{ c.sam_account_name }}</code></td>
+        <td><small>{{ c.os or '-' }}</small></td>
+        <td><small class="text-muted">{{ c.ou or '-' }}</small></td>
+        <td>
+          <form method="POST" action="{{ url_for('ad_computers.change_group', comp_id=c.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="group_name" class="form-select form-select-sm d-inline-block" style="width:auto"
+                    onchange="this.form.submit()">
+              {% for g in groups %}
+              <option value="{{ g.group_name }}" {% if g.group_name == c.group_name %}selected{% endif %}>
+                {{ g.group_name }} (VLAN {{ g.vlan_id }})
+              </option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          {% if c.is_enabled %}
+            <span class="badge bg-success">Habilitado</span>
+          {% else %}
+            <span class="badge bg-secondary">Deshabilitado</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('ad_computers.toggle_computer', comp_id=c.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-{{ 'warning' if c.is_enabled else 'success' }} btn-sm"
+                    title="{{ 'Deshabilitar' if c.is_enabled else 'Habilitar' }}">
+              <i class="bi bi-{{ 'pause-circle' if c.is_enabled else 'play-circle' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('ad_computers.delete_computer', comp_id=c.id) }}" class="d-inline"
+                onsubmit="return confirm('¿Eliminar equipo {{ c.name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="text-muted small mt-2">
+  <i class="bi bi-info-circle me-1"></i>
+  Al cambiar el grupo, se sincroniza automáticamente a RADIUS (radusergroup).
+  El username RADIUS usado es <code>host/hostname.dominio</code>.
+</p>
+{% else %}
+<div class="card">
+  <div class="card-body text-center text-muted py-4">
+    <i class="bi bi-pc-display fs-1 d-block mb-2"></i>
+    No hay equipos importados.
+    {% if ad_configured %}
+    Hacé click en <strong>Importar desde AD</strong> para traerlos.
+    {% else %}
+    Configurá las variables <code>AD_LDAP_HOST</code>, <code>AD_BIND_USER</code> y <code>AD_BIND_PASSWORD</code> en Coolify.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

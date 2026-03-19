@@ -1,10 +1,11 @@
 import json
 import logging
+import secrets
 from datetime import datetime, timezone
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    session, request,
+    session, request, current_app,
 )
 
 logger = logging.getLogger(__name__)
@@ -12,37 +13,27 @@ from app.extensions import db, oauth
 from app.models.allowed_domain import AllowedDomain
 from app.models.portal_user import PortalUser
 from app.models.oauth_state import OAuthState
+from app.services.portal_sync import sync_user_authorize
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
 
+def _generate_password(length=12):
+    """Genera una contraseña aleatoria segura."""
+    return secrets.token_urlsafe(length)[:length]
+
+
 @portal_bp.route("/")
 def landing():
-    # Capture Aruba params
-    aruba_params = {}
-    for key in ("cmd", "mac", "network", "ip", "apmac", "site", "post", "url"):
-        val = request.args.get(key, "")
-        if val:
-            aruba_params[key] = val
-
-    mac = aruba_params.get("mac", "")
-    logger.info(f"[PORTAL LANDING] mac={mac}, aruba_params={aruba_params}")
-
-    if aruba_params:
-        session["aruba_params"] = aruba_params
-
-    return render_template("portal/landing.html", mac=mac)
+    return render_template("portal/landing.html")
 
 
 @portal_bp.route("/login")
 def login():
-    mac = request.args.get("mac", session.get("aruba_params", {}).get("mac", ""))
-    aruba_params = session.get("aruba_params", {})
-
     redirect_uri = url_for("portal.callback", _external=True)
     resp = oauth.google.authorize_redirect(redirect_uri)
 
-    # Save OAuth state to DB (survives cookie/session loss in captive portals)
+    # Save OAuth state to DB (survives cookie/session loss)
     for key in list(session.keys()):
         if key.startswith("_state_google_"):
             state_value = key.replace("_state_google_", "")
@@ -50,11 +41,11 @@ def login():
             db.session.merge(OAuthState(
                 state=state_value,
                 data=json.dumps(state_data),
-                mac=mac,
-                aruba_params=json.dumps(aruba_params),
+                mac="",
+                aruba_params="{}",
             ))
             db.session.commit()
-            logger.info(f"[PORTAL LOGIN] state={state_value} saved to DB, mac={mac}")
+            logger.info(f"[PORTAL LOGIN] state={state_value} saved to DB")
             break
 
     return resp
@@ -64,8 +55,7 @@ def login():
 def callback():
     state_value = request.args.get("state", "")
 
-    # Always restore OAuth state from DB (session cookies are unreliable
-    # in captive portal contexts)
+    # Restore OAuth state from DB
     session_key = f"_state_google_{state_value}"
 
     if state_value:
@@ -77,7 +67,7 @@ def callback():
 
     try:
         token = oauth.google.authorize_access_token()
-        logger.info(f"[PORTAL CALLBACK] token obtained OK")
+        logger.info("[PORTAL CALLBACK] token obtained OK")
     except Exception as e:
         logger.error(f"[PORTAL CALLBACK] OAuth error: {e}")
         return render_template(
@@ -111,7 +101,9 @@ def callback():
 
     # Create or update portal user
     portal_user = PortalUser.query.filter_by(email=email).first()
-    if not portal_user:
+    is_new = portal_user is None
+
+    if is_new:
         logger.info(f"[PORTAL CALLBACK] creating new user: {email}")
         portal_user = PortalUser(
             email=email,
@@ -134,14 +126,61 @@ def callback():
             error="Tu cuenta ha sido deshabilitada por el administrador.",
         )
 
+    # Generate WiFi credentials if new user or no password yet
+    wifi_password = None
+    if is_new or not portal_user.wifi_password_encrypted:
+        wifi_password = _generate_password()
+        portal_user.set_wifi_password(wifi_password)
+        sync_user_authorize(email, wifi_password, portal_user.group_name)
+        logger.info(f"[PORTAL CALLBACK] WiFi credentials generated for {email}")
+    else:
+        wifi_password = portal_user.get_wifi_password()
+        logger.info(f"[PORTAL CALLBACK] existing WiFi credentials recovered for {email}")
+
     portal_user.last_auth_at = datetime.now(timezone.utc)
     db.session.commit()
 
-    logger.info(f"[PORTAL CALLBACK] success: user={email}")
+    # Store email in session for regeneration
+    session["portal_email"] = email
+
+    ssid_name = current_app.config.get("WIFI_SSID_NAME", "Gaman-WiFi")
 
     return render_template(
         "portal/success.html",
         name=name,
         email=email,
         picture=picture,
+        wifi_password=wifi_password,
+        ssid_name=ssid_name,
+    )
+
+
+@portal_bp.route("/regenerar", methods=["POST"])
+def regenerar():
+    email = session.get("portal_email")
+    if not email:
+        return redirect(url_for("portal.landing"))
+
+    portal_user = PortalUser.query.filter_by(email=email).first()
+    if not portal_user or not portal_user.is_enabled:
+        return redirect(url_for("portal.landing"))
+
+    # Generate new password
+    wifi_password = _generate_password()
+    portal_user.set_wifi_password(wifi_password)
+    sync_user_authorize(email, wifi_password, portal_user.group_name)
+    db.session.commit()
+
+    logger.info(f"[PORTAL REGENERAR] new WiFi password for {email}")
+
+    ssid_name = current_app.config.get("WIFI_SSID_NAME", "Gaman-WiFi")
+
+    return render_template(
+        "portal/success.html",
+        name=portal_user.full_name,
+        email=email,
+        picture=portal_user.picture_url,
+        wifi_password=wifi_password,
+        ssid_name=ssid_name,
+        regenerated=True,
     )

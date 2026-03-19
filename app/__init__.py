@@ -37,6 +37,7 @@ def create_app():
     from app.blueprints.domains.routes import domains_bp
     from app.blueprints.portal_users.routes import portal_users_bp
     from app.blueprints.portal.routes import portal_bp
+    from app.blueprints.ad_computers.routes import ad_computers_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -46,6 +47,7 @@ def create_app():
     app.register_blueprint(domains_bp)
     app.register_blueprint(portal_users_bp)
     app.register_blueprint(portal_bp)
+    app.register_blueprint(ad_computers_bp)
 
     # Excluir portal público de CSRF
     csrf.exempt(portal_bp)

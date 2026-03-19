@@ -3,12 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Conectado - Gaman WiFi</title>
+  <title>Credenciales WiFi - Gaman</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     body{background:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center}
-    .portal-card{max-width:420px;width:100%}
+    .portal-card{max-width:460px;width:100%}
+    .credential-box{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:16px;text-align:left}
+    .credential-box .label{font-size:13px;color:#6c757d;margin-bottom:2px}
+    .credential-box .value{font-size:16px;font-weight:600;font-family:monospace}
+    .copy-btn{cursor:pointer;border:none;background:none;color:#0d6efd;font-size:14px;padding:2px 6px}
+    .copy-btn:hover{color:#0a58ca}
   </style>
 </head>
 <body>
@@ -16,19 +21,70 @@
     <div class="card shadow-sm">
       <div class="card-body text-center p-4">
         <i class="bi bi-check-circle fs-1 text-success mb-2 d-block"></i>
-        <h4 class="mb-1">Conectado</h4>
-        <p class="text-muted mb-3">Ya podés usar internet.</p>
-        {% if picture %}
-        <img src="{{ picture }}" alt="" class="rounded-circle mb-2" width="64" height="64" referrerpolicy="no-referrer">
+        {% if regenerated %}
+        <h4 class="mb-1">Contraseña regenerada</h4>
+        <p class="text-muted mb-3">Tu nueva contraseña WiFi está lista.</p>
+        {% else %}
+        <h4 class="mb-1">Tus credenciales WiFi</h4>
+        <p class="text-muted mb-3">Usá estos datos para conectarte a la red.</p>
         {% endif %}
-        <p class="mb-1"><strong>{{ name }}</strong></p>
-        <p class="text-muted small">{{ email }}</p>
-        <p class="text-muted small mt-3 mb-0">Podés cerrar esta ventana.</p>
+
+        {% if picture %}
+        <img src="{{ picture }}" alt="" class="rounded-circle mb-3" width="64" height="64" referrerpolicy="no-referrer">
+        {% endif %}
+        <p class="mb-3"><strong>{{ name }}</strong></p>
+
+        <div class="credential-box mb-3">
+          <div class="mb-3">
+            <div class="label">Red (SSID)</div>
+            <div class="value">{{ ssid_name }}</div>
+          </div>
+          <div class="mb-3">
+            <div class="label">Usuario</div>
+            <div class="value">{{ email }}</div>
+          </div>
+          <div>
+            <div class="label">Contraseña</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="value" id="wifi-pass">{{ wifi_password }}</span>
+              <button class="copy-btn" onclick="copyPassword()" title="Copiar">
+                <i class="bi bi-clipboard" id="copy-icon"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info text-start small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Instrucciones:</strong>
+          <ol class="mb-0 mt-1 ps-3">
+            <li>En tu dispositivo, buscá la red <strong>{{ ssid_name }}</strong></li>
+            <li>Seleccioná seguridad <strong>WPA2-Enterprise</strong></li>
+            <li>Ingresá tu email como usuario y la contraseña de arriba</li>
+          </ol>
+        </div>
+
+        <form action="{{ url_for('portal.regenerar') }}" method="post" class="mb-2">
+          <button type="submit" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-arrow-repeat me-1"></i>Regenerar contraseña
+          </button>
+        </form>
+
+        <p class="text-muted small mt-3 mb-0">Podés volver a esta página en cualquier momento para ver o regenerar tus credenciales.</p>
       </div>
     </div>
     <p class="text-center text-muted small mt-3">Gaman WiFi</p>
   </div>
-  <!-- Aruba Instant On authentication trigger -->
-  <p style="visibility:hidden">InstantOn.Acknowledge</p>
+
+  <script>
+  function copyPassword() {
+    const pass = document.getElementById('wifi-pass').textContent;
+    navigator.clipboard.writeText(pass).then(function() {
+      const icon = document.getElementById('copy-icon');
+      icon.className = 'bi bi-clipboard-check text-success';
+      setTimeout(function() { icon.className = 'bi bi-clipboard'; }, 2000);
+    });
+  }
+  </script>
 </body>
 </html>

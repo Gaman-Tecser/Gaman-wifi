@@ -20,3 +20,9 @@ class Config:
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
     WIFI_SSID_NAME = os.environ.get("WIFI_SSID_NAME", "Gaman-WiFi")
+
+    # Active Directory LDAP
+    AD_LDAP_HOST = os.environ.get("AD_LDAP_HOST", "")
+    AD_BASE_DN = os.environ.get("AD_BASE_DN", "DC=grupogaman,DC=local")
+    AD_BIND_USER = os.environ.get("AD_BIND_USER", "")
+    AD_BIND_PASSWORD = os.environ.get("AD_BIND_PASSWORD", "")
